@@ -1,0 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Azure deployment output
+.env.azure
+infra/parameters.local.json
+.env
+secrets.txt
