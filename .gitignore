@@ -14,3 +14,5 @@ wheels/
 infra/parameters.local.json
 .env
 secrets.txt
+# Local demo-mode index cache
+.cache/

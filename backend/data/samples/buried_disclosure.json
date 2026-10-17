@@ -1,0 +1,8 @@
+{
+  "id": "buried_disclosure",
+  "title": "Skincare haul where the disclosure only appears at the very end",
+  "video_metadata": {"duration": 74, "platform": "demo"},
+  "transcript": "Welcome back to my channel. Today I am trying a brand new serum and a night cream, and I have to say my skin has never looked better. The serum absorbs fast, the cream smells lovely, and the packaging is gorgeous. I have used both for ten days and I am really happy with the texture. I would recommend this routine to anyone with dry skin, and I think you will love it as much as I do. Anyway, that is all for today, thanks for watching, and by the way these products were gifted to me by the brand, so there is that. See you next week.",
+  "ocr_text": ["New skincare routine"],
+  "expected": {"status": "FAIL", "categories": ["Disclosure not clear or conspicuous"]}
+}

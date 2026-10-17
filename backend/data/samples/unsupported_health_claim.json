@@ -1,0 +1,8 @@
+{
+  "id": "unsupported_health_claim",
+  "title": "Supplement ad with guarantees and cure claims",
+  "video_metadata": {"duration": 33, "platform": "demo"},
+  "transcript": "This is an ad for CalmMax. CalmMax cures anxiety in just three days, guaranteed. It is clinically proven, has no side effects, and works for everyone. Doctors do not want you to know about it. Order today and get your life back.",
+  "ocr_text": ["100% GUARANTEED", "CURES ANXIETY", "#ad"],
+  "expected": {"status": "FAIL", "categories": ["Unsupported claim"]}
+}

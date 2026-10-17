@@ -1,0 +1,8 @@
+{
+  "id": "undisclosed_sponsorship",
+  "title": "Blender review with no disclosure of a paid relationship",
+  "video_metadata": {"duration": 47, "platform": "demo"},
+  "transcript": "Okay so I have been using this blender every single morning and honestly it changed my routine. The brand sent it to me last month and we have been working together ever since. It makes the smoothest smoothies, I am obsessed. Use my code SAVE20 at checkout to get twenty percent off. Link is right below, go grab one before they sell out.",
+  "ocr_text": ["Use code SAVE20", "Link below"],
+  "expected": {"status": "FAIL", "categories": ["Missing sponsorship disclosure"]}
+}

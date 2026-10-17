@@ -9,6 +9,7 @@ compliance audit workflow. Think of it as the master switch that:
 """
 
 # Standard library imports for basic Python functionality
+import os
 import uuid      # Generates unique IDs (like session tracking numbers)
 import json      # Handles JSON data formatting (converts Python dicts to readable text)
 import logging   # Records what happens during execution (like a flight recorder)
@@ -59,7 +60,8 @@ def run_cli_simulation():
     initial_inputs = {
         # The YouTube video to audit
         # "video_url": "https://youtu.be/dT7S75eYhcQ",
-        'video_url': "https://youtu.be/xTpv9lc_qMw",  # Example: Lo-fi music stream
+                # Override with VIDEO_URL, e.g. VIDEO_URL=demo://undisclosed_sponsorship in DEMO_MODE
+        'video_url': os.getenv("VIDEO_URL", "https://youtu.be/xTpv9lc_qMw"),  # Example: Lo-fi music stream
         
         # Shortened video ID for easier tracking (first 8 chars of session ID)
         # Example: "vid_ce6c43bb"
@@ -123,6 +125,9 @@ def run_cli_simulation():
                 # Each issue is a dict with: severity, category, description
                 # Example output: "- [CRITICAL] Misleading Claims: Absolute guarantee detected"
                 print(f"- [{issue.get('severity')}] {issue.get('category')}: {issue.get('description')}")
+        elif final_state.get('final_status') == "ERROR":
+            # The audit did not complete: never say "no violations" in this case
+            print("Audit could not be completed (see the log above for the reason).")
         else:
             # No violations found (clean video)
             print("No violations found.")

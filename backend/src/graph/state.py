@@ -32,9 +32,21 @@ class VideoAuditState(TypedDict):
     
     # --- Final Deliverables ---
     # final_status: str               # "PASS" | "FAIL"
-    final_status: Literal["PASS", "FAIL"]
+    final_status: Literal["PASS", "FAIL","Error"]
     final_report: str               # Markdown summary for the frontend
     
     # --- System Observability ---
     # Appends system-level errors (e.g., API timeouts) without halting execution logic.
     errors: Annotated[List[str], operator.add]
+
+
+
+
+# --- Allowed values for VideoAuditState["final_status"] ---
+# PASS  : audit ran, no violations found
+# FAIL  : audit ran, violations found
+# ERROR : the audit could NOT be completed (download/indexing/LLM/parse failure).
+#         An ERROR must never be read as "safe" or as "violations found".
+STATUS_PASS = "PASS"
+STATUS_FAIL = "FAIL"
+STATUS_ERROR = "ERROR"

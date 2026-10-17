@@ -1,0 +1,8 @@
+{
+  "id": "clean_disclosed",
+  "title": "Blender review with clear sponsorship disclosure",
+  "video_metadata": {"duration": 58, "platform": "demo"},
+  "transcript": "Hey everyone. Before we start: this video is sponsored by BrightBlend. They paid me to make it and sent me the blender for free, but all opinions are my own. So here is what I think after two weeks. The motor is loud but it crushes ice well. The jar is dishwasher safe, which I love. It is not perfect, the lid is a bit stiff, and at this price there are cheaper options that do the job. If you want to try it, the link is in the description, and that link is an affiliate link so I earn a commission if you buy.",
+  "ocr_text": ["#ad", "Sponsored by BrightBlend", "Affiliate link in description"],
+  "expected": {"status": "PASS", "categories": []}
+}

@@ -13,13 +13,17 @@ from langgraph.graph import StateGraph, END
 from typing import Literal
 
 # Import the State Schema
-from backend.src.graph.state import VideoAuditState
+from backend.src.graph.state import VideoAuditState, STATUS_ERROR
 
 # Import the Functional Nodes
 from backend.src.graph.nodes import (
     index_video_node,
     audit_content_node
 )
+
+def route_after_indexer(state: VideoAuditState) -> str:
+    """If indexing failed there is nothing to audit: end the run instead of calling the LLM."""
+    return "end" if state.get("final_status") == STATUS_ERROR else "auditor"
 
 def create_graph():
     """
@@ -44,7 +48,11 @@ def create_graph():
 
     # Connect 'indexer' -> 'auditor'
     # Once the video is indexed (transcript extracted), move to compliance auditing.
-    workflow.add_edge("indexer", "auditor")
+    workflow.add_conditional_edges(
+        "indexer",
+        route_after_indexer,
+        {"auditor": "auditor", "end": END},
+    )
 
     # Connect 'auditor' -> END
     # Once the audit is complete, the workflow finishes.

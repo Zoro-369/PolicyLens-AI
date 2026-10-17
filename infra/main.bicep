@@ -14,7 +14,8 @@ var searchName = '${shortName}-search'
 var storageName = 'pl${take(suffix, 20)}st'
 var logName = '${shortName}-logs'
 var insightsName = '${shortName}-appinsights'
-var videoIndexerName = '${shortName}-vi'
+var videoIndexerName = '${shortName}-vi2'
+var videoIndexerIdentityName = '${shortName}-vi-id'
 var keyVaultName = '${take(replace(shortName, '-', ''), 18)}kv'
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
@@ -45,6 +46,10 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
     supportsHttpsTrafficOnly: true
+    networkAcls: {
+      bypass: 'AzureServices'
+      defaultAction: 'Allow'
+    }
   }
 }
 
@@ -75,26 +80,38 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
+resource videoIndexerIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: videoIndexerIdentityName
+  location: location
+}
+
 resource videoIndexer 'Microsoft.VideoIndexer/accounts@2024-01-01' = {
   name: videoIndexerName
   location: location
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${videoIndexerIdentity.id}': {}
+    }
   }
   properties: {
     storageServices: {
       resourceId: storage.id
+      userAssignedIdentity: videoIndexerIdentity.id
     }
   }
+  dependsOn: [
+    videoIndexerStorageRole
+  ]
 }
 
 resource videoIndexerStorageRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storage.id, videoIndexer.name, 'StorageBlobDataContributor')
+  name: guid(storage.id, videoIndexerIdentity.id, 'StorageBlobDataOwner')
   scope: storage
   properties: {
-    principalId: videoIndexer.identity.principalId
+    principalId: videoIndexerIdentity.properties.principalId
     principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
   }
 }
 

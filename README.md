@@ -176,12 +176,90 @@ az group create \
 The command requires only Azure CLI. It writes the Search endpoint and key,
 Storage connection string, Video Indexer identifiers, subscription details,
 Application Insights connection string, and disabled LangSmith tracing defaults
-to `.env.azure`. It also grants the
-signed-in identity the **Video Indexer Account Contributor** role required to
+to `.env.azure`. It also grants the signed-in identity the
+**Video Indexer Account Contributor** role required to
 generate account tokens. Add your Groq key to that file:
 
 ```env
 GROQ_API_KEY=gsk_your_key_here
+```
+
+#### Key Vault name already exists in deleted state
+
+Azure Key Vault keeps deleted vault names in a soft-deleted state. If a
+deployment fails with `ConflictError` and says that a vault with the same name
+already exists in deleted state, the resource group can be empty while the
+vault name is still reserved. List deleted vaults in the deployment region and
+identify the name reported by the failed deployment:
+
+```bash
+az keyvault list-deleted \
+  --output table
+```
+
+If the vault may contain data that should be retained, recover it instead of
+purging it:
+
+```bash
+az keyvault recover \
+  --name "<KEY_VAULT_NAME>"
+```
+
+If the vault is disposable and you have confirmed that its secrets, keys, and
+certificates are no longer needed, purge it. Purging is permanent:
+
+```bash
+az keyvault purge \
+  --name "<KEY_VAULT_NAME>"
+```
+
+Wait for the purge to complete, then rerun `infra/deploy.sh`. If purge
+protection is enabled, Azure will not allow an early purge; recover the vault
+or use a different project name instead:
+
+```bash
+./infra/deploy.sh -g pltest5 -l centralindia -p policylens2
+```
+
+#### Azure AI Search service is still deleting
+
+If deployment fails with `ServiceDeleting` and says that the Search service
+has a background operation in progress, a previous delete or update has not
+finished yet. Confirm the service state and inspect the failed deployment
+operations:
+
+```bash
+az search service show \
+  --resource-group pltest5 \
+  --name policylensdrt55jhf-search \
+  --query "{name:name,provisioningState:provisioningState}" \
+  --output table
+
+az deployment group operation list \
+  --resource-group pltest5 \
+  --name policylens-20261017152530 \
+  --query "[?properties.provisioningState=='Failed'].{resource:properties.targetResource.resourceName,code:properties.statusMessage.error.code,message:properties.statusMessage.error.message}" \
+  --output table
+```
+
+If `az search service show` returns `ResourceNotFound`, the old Search service
+has finished deleting. Rerun the deployment with the same project name:
+
+```bash
+./infra/deploy.sh -g pltest5 -l centralindia -p policylens
+```
+
+Do not start repeated deployments immediately. Wait a few minutes and retry
+with increasing delays (for example, 2, 5, and 10 minutes), checking that the
+Search service is no longer in `Deleting` or `Updating` state before each
+attempt. If `ResourceNotFound` is returned, proceed with the retry above. If
+the operation remains stuck for an extended period, check the
+Azure portal activity log or open an Azure support request with the Request ID
+from the error. A different project name creates a different Search service,
+but should be used only when the old service is no longer needed:
+
+```bash
+./infra/deploy.sh -g pltest5 -l centralindia -p policylens2
 ```
 
 To enable LangSmith for the generated environment, export the tracing settings
@@ -190,7 +268,7 @@ before running the deployment:
 ```bash
 LANGSMITH_TRACING=true \
 LANGSMITH_API_KEY=lsv2_your_key_here \
-./infra/deploy.sh -g pltest7 -l centralindia -p policylens
+./infra/deploy.sh -g pltest5 -l centralindia -p policylens
 ```
 
 ```bash
@@ -210,6 +288,52 @@ If `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `AZURE_TENANT_ID` are already
 exported, the deployment grants the role to that service principal. Otherwise,
 it grants the role to the signed-in `az` user. Do not switch identities after
 deployment without assigning the same role to the new identity.
+
+The Video Indexer account uses a dedicated user-assigned managed identity and
+needs **Storage Blob Data Owner** on the storage account provisioned by this
+template. Azure RBAC
+changes can take a few minutes to propagate. If an audit reports
+`STORAGE_ACCESS_DENIED`, repair the assignment and wait for propagation before
+retrying:
+
+```bash
+storage_id="$(az storage account show \
+  --resource-group pltest5 \
+  --name "$(az deployment group show -g pltest5 -n <DEPLOYMENT_NAME> \
+    --query 'properties.outputs.storageName.value' -o tsv)" \
+  --query id -o tsv)"
+
+video_indexer_identity_id="$(az resource show \
+  --resource-group pltest5 \
+  --resource-type Microsoft.ManagedIdentity/userAssignedIdentities \
+  --name "<VIDEO_INDEXER_IDENTITY_NAME>" \
+  --query properties.clientId -o tsv)"
+
+az role assignment create \
+  --assignee "$video_indexer_identity_id" \
+  --assignee-principal-type ServicePrincipal \
+  --role "Storage Blob Data Owner" \
+  --scope "$storage_id"
+```
+
+The identity name is `<short project name>-vi-id`; use the value shown in the
+deployment resources for `<VIDEO_INDEXER_IDENTITY_NAME>`. If the role already
+exists, do not create a duplicate;
+instead verify it with:
+
+```bash
+az role assignment list \
+  --assignee "$video_indexer_identity_id" \
+  --scope "$storage_id" \
+  --role "Storage Blob Data Owner" \
+  --include-inherited \
+  --output table
+```
+
+After the role is visible, allow several minutes for Video Indexer to observe
+the permission and then rerun the audit. A successful upload alone does not
+prove that Video Indexer can access its backing storage; the failing operation
+occurs inside the Azure service after the file upload request.
 
 `.env.azure` is ignored by Git and contains secrets. Load it before running the
 application or indexing script:
